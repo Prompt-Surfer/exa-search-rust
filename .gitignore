@@ -1,0 +1,6 @@
+target/
+*.lock
+.env
+*_PLAN.md
+*_SPEC.md
+*_TASK.md
