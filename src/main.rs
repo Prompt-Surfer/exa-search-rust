@@ -23,11 +23,20 @@ async fn main() {
         Ok(k) if !k.is_empty() => k,
         _ => return emit_err("EXA_API_KEY environment variable not set"),
     };
+    if !is_valid_uuid(&api_key) {
+        return emit_err(
+            "EXA_API_KEY is invalid: expected UUID format (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)",
+        );
+    }
 
     // ── Read stdin ───────────────────────────────────────────────────────────
+    const MAX_STDIN: u64 = 1_048_576; // 1 MB
     let mut buf = String::new();
-    if let Err(e) = io::stdin().read_to_string(&mut buf) {
+    if let Err(e) = io::stdin().take(MAX_STDIN + 1).read_to_string(&mut buf) {
         return emit_err(&format!("Failed to read stdin: {e}"));
+    }
+    if buf.len() > MAX_STDIN as usize {
+        return emit_err("Input too large: maximum 1MB");
     }
 
     // ── Parse input ──────────────────────────────────────────────────────────
@@ -224,6 +233,29 @@ fn resolve_contents(
             ..Default::default()
         }
     }
+}
+
+/// Validates that a string matches UUID v4 format without a regex dependency.
+/// Expected: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx (8-4-4-4-12 lowercase hex, dashes at fixed positions)
+fn is_valid_uuid(s: &str) -> bool {
+    let b = s.as_bytes();
+    if b.len() != 36 {
+        return false;
+    }
+    // Dashes must be at positions 8, 13, 18, 23
+    if b[8] != b'-' || b[13] != b'-' || b[18] != b'-' || b[23] != b'-' {
+        return false;
+    }
+    // All other positions must be lowercase hex digits
+    for (i, &ch) in b.iter().enumerate() {
+        if i == 8 || i == 13 || i == 18 || i == 23 {
+            continue;
+        }
+        if !ch.is_ascii_hexdigit() || ch.is_ascii_uppercase() {
+            return false;
+        }
+    }
+    true
 }
 
 fn emit_ok(output: &Output) {

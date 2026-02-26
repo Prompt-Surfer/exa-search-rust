@@ -20,7 +20,7 @@ The skill invokes a native Rust binary (`bin/exa-search`) via Bash. Run `install
 
 ```bash
 echo '{"query":"your query here","num_results":5}' \
-  | EXA_API_KEY=$(grep EXA_API_KEY ~/.openclaw/workspace/.env | cut -d= -f2) \
+  | EXA_API_KEY=$(grep -E "^EXA_API_KEY=" ~/.openclaw/workspace/.env | cut -d= -f2 | tr -d '"') \
   ~/.openclaw/workspace/skills/exa-search/bin/exa-search
 ```
 
@@ -60,7 +60,7 @@ Find pages similar to a given URL:
 
 ```bash
 echo '{"action":"find_similar","url":"https://example.com","num_results":5}' \
-  | EXA_API_KEY=$(grep EXA_API_KEY ~/.openclaw/workspace/.env | cut -d= -f2) \
+  | EXA_API_KEY=$(grep -E "^EXA_API_KEY=" ~/.openclaw/workspace/.env | cut -d= -f2 | tr -d '"') \
   ~/.openclaw/workspace/skills/exa-search/bin/exa-search
 ```
 
@@ -74,7 +74,7 @@ Fetch full contents for one or more URLs:
 
 ```bash
 echo '{"action":"get_contents","urls":["https://example.com","https://other.com"],"text":{"max_characters":1000}}' \
-  | EXA_API_KEY=$(grep EXA_API_KEY ~/.openclaw/workspace/.env | cut -d= -f2) \
+  | EXA_API_KEY=$(grep -E "^EXA_API_KEY=" ~/.openclaw/workspace/.env | cut -d= -f2 | tr -d '"') \
   ~/.openclaw/workspace/skills/exa-search/bin/exa-search
 ```
 
@@ -129,13 +129,13 @@ The `formatted` field is ready-to-use markdown — you can send it directly to t
 ## Helper: load API key
 
 ```bash
-EXA_API_KEY=$(grep EXA_API_KEY ~/.openclaw/workspace/.env | cut -d= -f2)
+EXA_API_KEY=$(grep -E "^EXA_API_KEY=" ~/.openclaw/workspace/.env | cut -d= -f2 | tr -d '"')
 ```
 
 Or export once at the top of a longer workflow:
 
 ```bash
-export EXA_API_KEY=$(grep EXA_API_KEY ~/.openclaw/workspace/.env | cut -d= -f2)
+export EXA_API_KEY=$(grep -E "^EXA_API_KEY=" ~/.openclaw/workspace/.env | cut -d= -f2 | tr -d '"')
 echo '{"query":"..."}' | ~/.openclaw/workspace/skills/exa-search/bin/exa-search
 ```
 
@@ -144,7 +144,7 @@ echo '{"query":"..."}' | ~/.openclaw/workspace/skills/exa-search/bin/exa-search
 ## Invocation pattern
 
 ```bash
-EXA_API_KEY=$(grep EXA_API_KEY ~/.openclaw/workspace/.env | cut -d= -f2)
+EXA_API_KEY=$(grep -E "^EXA_API_KEY=" ~/.openclaw/workspace/.env | cut -d= -f2 | tr -d '"')
 echo '{"query":"...","num_results":5,"livecrawl":"never"}' \
   | EXA_API_KEY="$EXA_API_KEY" ~/.openclaw/workspace/skills/exa-search/bin/exa-search
 ```
