@@ -1,4 +1,4 @@
-use super::enums::{Livecrawl, Verbosity};
+use super::enums::{Livecrawl, SearchType, Verbosity};
 use serde::{Deserialize, Serialize};
 
 // ─── Text contents option ─────────────────────────────────────────────────────
@@ -52,9 +52,6 @@ pub struct HighlightsOptions {
 pub struct ExtrasOptions {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub links: Option<u32>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub image_links: Option<u32>,
 }
 
 // ─── ContentsOptions (shared: search / find_similar / get_contents) ──────────
@@ -196,7 +193,7 @@ pub struct SearchOptions {
     pub num_results: Option<u32>,
 
     #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
-    pub search_type: Option<String>,
+    pub search_type: Option<SearchType>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub category: Option<String>,

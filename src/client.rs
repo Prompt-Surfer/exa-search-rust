@@ -22,16 +22,14 @@ impl ExaClient {
         Ok(Self { client, api_key })
     }
 
-    fn auth_headers(&self) -> HeaderMap {
+    fn auth_headers(&self) -> Result<HeaderMap> {
         let mut headers = HeaderMap::new();
-        // api_key is ASCII; from_str only fails on non-ASCII/control chars
-        #[allow(clippy::expect_used)]
-        headers.insert(
-            "x-api-key",
-            HeaderValue::from_str(&self.api_key).expect("api_key must be valid ASCII"),
-        );
+        let Ok(api_key_val) = HeaderValue::from_str(&self.api_key) else {
+            anyhow::bail!("api_key contains invalid header characters");
+        };
+        headers.insert("x-api-key", api_key_val);
         headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
-        headers
+        Ok(headers)
     }
 
     pub async fn search(&self, opts: SearchOptions) -> Result<SearchResponse> {
@@ -39,7 +37,7 @@ impl ExaClient {
         let resp = self
             .client
             .post(&url)
-            .headers(self.auth_headers())
+            .headers(self.auth_headers()?)
             .json(&opts)
             .send()
             .await
@@ -52,7 +50,7 @@ impl ExaClient {
         let resp = self
             .client
             .post(&url)
-            .headers(self.auth_headers())
+            .headers(self.auth_headers()?)
             .json(&opts)
             .send()
             .await
@@ -65,7 +63,7 @@ impl ExaClient {
         let resp = self
             .client
             .post(&url)
-            .headers(self.auth_headers())
+            .headers(self.auth_headers()?)
             .json(&opts)
             .send()
             .await
@@ -78,8 +76,13 @@ impl ExaClient {
         &self,
         resp: reqwest::Response,
     ) -> Result<T> {
+        const MAX_BODY: usize = 10 * 1024 * 1024; // 10MB
         let status = resp.status();
-        let body = resp.text().await.context("Failed to read response body")?;
+        let bytes = resp.bytes().await.context("Failed to read response body")?;
+        if bytes.len() > MAX_BODY {
+            anyhow::bail!("Response too large: {} bytes (max 10MB)", bytes.len());
+        }
+        let body = String::from_utf8(bytes.to_vec()).context("Response body is not valid UTF-8")?;
         if !status.is_success() {
             anyhow::bail!("Exa API error {status}: {body}");
         }

@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum SearchType {
@@ -9,6 +8,7 @@ pub enum SearchType {
     Deep,
     Neural,
     Instant,
+    Keyword,
 }
 
 /// Maps to Exa category strings (may contain spaces — use string passthrough).

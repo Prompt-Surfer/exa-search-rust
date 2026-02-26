@@ -19,17 +19,6 @@ pub struct Entity {
     pub properties: Option<serde_json::Value>,
 }
 
-// ─── Extras in result ─────────────────────────────────────────────────────────
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ResultExtras {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub links: Option<Vec<String>>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub image_links: Option<Vec<String>>,
-}
-
 // ─── Core result item ─────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -74,7 +63,7 @@ pub struct ExaResult {
     pub subpages: Option<Vec<ExaResult>>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub extras: Option<ResultExtras>,
+    pub extras: Option<serde_json::Value>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub entities: Option<Vec<Entity>>,

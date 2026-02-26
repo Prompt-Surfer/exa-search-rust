@@ -1,4 +1,5 @@
-use crate::types::params::ContentsInput;
+use crate::types::enums::SearchType;
+use crate::types::params::{ContentsInput, ExtrasOptions};
 use crate::types::result::ExaResult;
 use serde::{Deserialize, Serialize};
 
@@ -13,7 +14,7 @@ pub struct Input {
     pub query: Option<String>,
     pub num_results: Option<u32>,
     #[serde(rename = "type")]
-    pub search_type: Option<String>,
+    pub search_type: Option<SearchType>,
     pub category: Option<String>,
     pub include_domains: Option<Vec<String>>,
     pub exclude_domains: Option<Vec<String>>,
@@ -40,6 +41,11 @@ pub struct Input {
 
     // ── legacy compat: max_chars → contents.text.max_characters ───────────
     pub max_chars: Option<u32>,
+
+    // ── top-level contents shorthands (applied if contents object omits them) ──
+    pub filter_empty_results: Option<bool>,
+    pub extras: Option<ExtrasOptions>,
+    pub max_age_hours: Option<i32>,
 }
 
 #[derive(Debug, Serialize)]

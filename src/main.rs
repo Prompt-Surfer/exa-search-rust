@@ -12,8 +12,8 @@ use client::ExaClient;
 use protocol::{format_results, Input, Output};
 use std::io::{self, Read};
 use types::{
-    params::ContentsInput, ContentsOptions, FindSimilarOptions, GetContentsOptions, SearchOptions,
-    TextOptions,
+    params::{ContentsInput, ExtrasOptions},
+    ContentsOptions, FindSimilarOptions, GetContentsOptions, SearchOptions, TextOptions,
 };
 
 #[tokio::main]
@@ -21,34 +21,34 @@ async fn main() {
     // ── Read API key ─────────────────────────────────────────────────────────
     let api_key = match std::env::var("EXA_API_KEY") {
         Ok(k) if !k.is_empty() => k,
-        _ => return emit_err("EXA_API_KEY environment variable not set"),
+        _ => emit_err("EXA_API_KEY environment variable not set"),
     };
     if !is_valid_uuid(&api_key) {
-        return emit_err(
+        emit_err(
             "EXA_API_KEY is invalid: expected UUID format (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)",
         );
     }
 
     // ── Read stdin ───────────────────────────────────────────────────────────
-    const MAX_STDIN: u64 = 1_048_576; // 1 MB
+    let mut limited = io::stdin().take(1_048_577); // 1MB + 1 byte
     let mut buf = String::new();
-    if let Err(e) = io::stdin().take(MAX_STDIN + 1).read_to_string(&mut buf) {
-        return emit_err(&format!("Failed to read stdin: {e}"));
+    if let Err(e) = limited.read_to_string(&mut buf) {
+        emit_err(&format!("Failed to read stdin: {e}"));
     }
-    if buf.len() > MAX_STDIN as usize {
-        return emit_err("Input too large: maximum 1MB");
+    if buf.len() > 1_048_576 {
+        emit_err("Input too large: maximum is 1MB");
     }
 
     // ── Parse input ──────────────────────────────────────────────────────────
     let input: Input = match serde_json::from_str(&buf) {
         Ok(i) => i,
-        Err(e) => return emit_err(&format!("Invalid JSON input: {e}")),
+        Err(e) => emit_err(&format!("Invalid JSON input: {e}")),
     };
 
     // ── Build client ─────────────────────────────────────────────────────────
     let client = match ExaClient::new(api_key) {
         Ok(c) => c,
-        Err(e) => return emit_err(&format!("Failed to create HTTP client: {e}")),
+        Err(e) => emit_err(&format!("Failed to create HTTP client: {e}")),
     };
 
     // ── Dispatch ─────────────────────────────────────────────────────────────
@@ -66,11 +66,17 @@ async fn main() {
 
 async fn handle_search(client: ExaClient, input: Input) {
     let Some(query) = input.query else {
-        return emit_err("'query' is required for action 'search'");
+        emit_err("'query' is required for action 'search'");
     };
 
     // Resolve contents options
-    let contents = Some(resolve_contents(input.contents.as_ref(), input.max_chars));
+    let contents = Some(resolve_contents(
+        input.contents.as_ref(),
+        input.max_chars,
+        input.filter_empty_results,
+        input.extras,
+        input.max_age_hours,
+    ));
 
     let opts = SearchOptions {
         query,
@@ -91,6 +97,10 @@ async fn handle_search(client: ExaClient, input: Input) {
         additional_queries: input.additional_queries,
         contents,
     };
+
+    if opts.num_results.unwrap_or(0) > 50 {
+        emit_err("num_results exceeds maximum of 50");
+    }
 
     match client.search(opts).await {
         Ok(resp) => {
@@ -114,10 +124,16 @@ async fn handle_search(client: ExaClient, input: Input) {
 
 async fn handle_find_similar(client: ExaClient, input: Input) {
     let Some(url) = input.url else {
-        return emit_err("'url' is required for action 'find_similar'");
+        emit_err("'url' is required for action 'find_similar'");
     };
 
-    let contents = Some(resolve_contents(input.contents.as_ref(), input.max_chars));
+    let contents = Some(resolve_contents(
+        input.contents.as_ref(),
+        input.max_chars,
+        input.filter_empty_results,
+        input.extras,
+        input.max_age_hours,
+    ));
 
     let opts = FindSimilarOptions {
         url,
@@ -134,6 +150,10 @@ async fn handle_find_similar(client: ExaClient, input: Input) {
         category: input.category,
         contents,
     };
+
+    if opts.num_results.unwrap_or(0) > 50 {
+        emit_err("num_results exceeds maximum of 50");
+    }
 
     match client.find_similar(opts).await {
         Ok(resp) => {
@@ -158,7 +178,7 @@ async fn handle_find_similar(client: ExaClient, input: Input) {
 async fn handle_get_contents(client: ExaClient, input: Input) {
     let urls = match input.urls {
         Some(u) if !u.is_empty() => u,
-        _ => return emit_err("'urls' (non-empty array) is required for action 'get_contents'"),
+        _ => emit_err("'urls' (non-empty array) is required for action 'get_contents'"),
     };
 
     // For get_contents, contents options are passed as top-level fields
@@ -182,11 +202,11 @@ async fn handle_get_contents(client: ExaClient, input: Input) {
         highlights: resolved.highlights,
         livecrawl: resolved.livecrawl,
         livecrawl_timeout: resolved.livecrawl_timeout,
-        max_age_hours: resolved.max_age_hours,
-        filter_empty_results: resolved.filter_empty_results,
+        max_age_hours: resolved.max_age_hours.or(input.max_age_hours),
+        filter_empty_results: resolved.filter_empty_results.or(input.filter_empty_results),
         subpages: resolved.subpages,
         subpage_target: resolved.subpage_target,
-        extras: resolved.extras,
+        extras: resolved.extras.or(input.extras),
     };
 
     match client.get_contents(opts).await {
@@ -204,12 +224,15 @@ async fn handle_get_contents(client: ExaClient, input: Input) {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-/// Resolve contents from protocol input + legacy `max_chars`.
+/// Resolve contents from protocol input + legacy `max_chars` and top-level shorthands.
 /// If neither is provided, defaults to text with `max_characters=10000`
 /// (preserves backwards-compat with old behaviour).
 fn resolve_contents(
     contents_input: Option<&ContentsInput>,
     max_chars: Option<u32>,
+    filter_empty_results: Option<bool>,
+    extras: Option<ExtrasOptions>,
+    max_age_hours: Option<i32>,
 ) -> ContentsOptions {
     if let Some(ci) = contents_input {
         let mut opts = ci.clone().into_options();
@@ -221,6 +244,16 @@ fn resolve_contents(
                 }
             }
         }
+        // Apply top-level shorthands as fallbacks
+        if opts.filter_empty_results.is_none() {
+            opts.filter_empty_results = filter_empty_results;
+        }
+        if opts.extras.is_none() {
+            opts.extras = extras;
+        }
+        if opts.max_age_hours.is_none() {
+            opts.max_age_hours = max_age_hours;
+        }
         opts
     } else {
         // Legacy default: always request text
@@ -230,6 +263,9 @@ fn resolve_contents(
                 max_characters,
                 ..Default::default()
             }),
+            filter_empty_results,
+            extras,
+            max_age_hours,
             ..Default::default()
         }
     }
@@ -265,13 +301,14 @@ fn emit_ok(output: &Output) {
     }
 }
 
-fn emit_err(msg: &str) {
+fn emit_err(msg: &str) -> ! {
     let output = Output::Err {
         ok: false,
         error: msg.to_string(),
     };
     match serde_json::to_string(&output) {
-        Ok(s) => println!("{s}"),
-        Err(e) => eprintln!("Fatal: failed to serialize error: {e}"),
+        Ok(s) => eprintln!("{s}"),
+        Err(e) => eprintln!("{{\"ok\":false,\"error\":\"Fatal serialization error: {e}\"}}"),
     }
+    std::process::exit(1)
 }
