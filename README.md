@@ -6,20 +6,6 @@ A port of the [official Exa Python SDK](https://github.com/exa-labs/exa-py) to R
 
 > **Looking for the OpenClaw plugin version?** → [openclaw-exa-plugin](https://github.com/Prompt-Surfer/openclaw-exa-plugin) (registers `web_search_exa` as a native tool, no Bash required)
 
----
-
-## Plugin vs Skill
-
-| | [Plugin](https://github.com/Prompt-Surfer/openclaw-exa-plugin) | Skill (this repo) |
-|---|---|---|
-| How agent calls it | Native `web_search_exa` tool | `Bash` tool invocation |
-| Requires Bash access | No | Yes |
-| Gateway restart to update | Yes | Never |
-| ClawHub compatible | Harder | ✅ Easy |
-| Sandbox compatible | ✅ | No |
-| Zero config code | No | ✅ |
-
-Use the **plugin** if you want a clean native tool. Use this **skill** if you want simpler distribution, ClawHub compatibility, or to avoid the TypeScript plugin layer.
 
 ---
 
