@@ -1,6 +1,8 @@
 ---
 name: exa-search
 description: "Neural web search, similar-page discovery, and URL content fetching via the Exa AI search engine. USE WHEN: user asks to search the web, find articles/repos/papers on a topic, look up recent news, find pages similar to a URL, or fetch page contents for a known URL. NOT FOR: fetching tweets (use fxtwitter), downloading videos (use yt-dlp), scraping JS-heavy or anti-bot sites (use scrapling), querying APIs directly, or searching local files/repos (use rg/find)."
+homepage: https://github.com/Prompt-Surfer/exa-search-rust
+metadata: {"openclaw":{"emoji":"🔍","requires":{"env":["EXA_API_KEY"],"bins":["bash","cargo"]},"primaryEnv":"EXA_API_KEY","install":[{"id":"build","kind":"script","label":"Build Rust binary","run":"bash install.sh"}]}}
 ---
 
 # exa-search skill
