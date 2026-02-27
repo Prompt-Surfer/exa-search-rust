@@ -2,6 +2,8 @@
 
 OpenClaw [skill](https://openclaw.ai/docs/skills) for [Exa AI](https://exa.ai) search — neural search, find similar, and page contents via a native Rust binary.
 
+Unlock blazingly fast 300ms searches!
+
 A port of the [official Exa Python SDK](https://github.com/exa-labs/exa-py) to Rust, packaged as a self-contained OpenClaw skill. Covers the full core API surface with hardened input validation and strict error handling on top.
 
 > **Looking for the OpenClaw plugin version?** → [openclaw-exa-plugin](https://github.com/Prompt-Surfer/openclaw-exa-plugin) (registers `web_search_exa` as a native tool, no Bash required)
