@@ -2,6 +2,8 @@
 
 OpenClaw [skill](https://openclaw.ai/docs/skills) for [Exa AI](https://exa.ai) search — neural search, find similar, and page contents via a native Rust binary.
 
+A port of the [official Exa Python SDK](https://github.com/exa-labs/exa-py) to Rust, packaged as a self-contained OpenClaw skill. Covers the full core API surface with hardened input validation and strict error handling on top.
+
 > **Looking for the OpenClaw plugin version?** → [openclaw-exa-plugin](https://github.com/Prompt-Surfer/openclaw-exa-plugin) (registers `web_search_exa` as a native tool, no Bash required)
 
 ---
@@ -222,3 +224,63 @@ On success, stdout receives a JSON object with `ok: true`. On error, stderr rece
 └── bin/
     └── exa-search    # Pre-built Linux x86_64 binary (also buildable via install.sh)
 ```
+
+---
+
+## Roadmap
+
+### ✅ Implemented (Python SDK parity)
+
+| Feature | Python SDK | This repo |
+|---|---|---|
+| `search` | ✅ | ✅ |
+| `find_similar` | ✅ | ✅ |
+| `get_contents` | ✅ | ✅ |
+| `text` contents | ✅ | ✅ |
+| `highlights` contents | ✅ | ✅ |
+| `summary` contents | ✅ | ✅ |
+| `livecrawl` + `livecrawl_timeout` | ✅ | ✅ |
+| `filter_empty_results` | ✅ | ✅ |
+| `subpages` / `subpage_target` | ✅ | ✅ |
+| `extras.links` | ✅ | ✅ |
+| `max_age_hours` | ✅ | ✅ |
+| Date filters (`start/end_published_date`, `start/end_crawl_date`) | ✅ | ✅ |
+| Domain filters (`include/exclude_domains`) | ✅ | ✅ |
+| Text filters (`include/exclude_text`) | ✅ | ✅ |
+| `category` | ✅ | ✅ |
+| `use_autoprompt` | ✅ | ✅ |
+| `user_location` | ✅ | ✅ |
+| `moderation` | ✅ | ✅ |
+| `additional_queries` | ✅ | ✅ |
+| `exclude_source_domain` (find\_similar) | ✅ | ✅ |
+
+---
+
+### 🗺️ Not Yet Implemented
+
+| Feature | Notes |
+|---|---|
+| `answer` / `stream_answer` | Pay-per-use ($5/1k). Skipped — Claude + Perplexity already handle this. Could be added behind a flag. |
+| `search_and_contents` / `find_similar_and_contents` | Convenience wrappers. Equivalent behaviour already available: pass a `contents` object to `search` or `find_similar`. |
+| `image_links` | Excluded by design — adds noise in LLM contexts. |
+| OpenAI-compatible wrapper (`wrap`) | Drop-in `openai.Client` replacement. Out of scope for an OpenClaw skill. |
+| Websets client | Exa's structured data extraction product. Separate API surface. |
+| Research client | Exa's deep research product. Separate API surface. |
+| Entity types (`Company`, `Person`) for `find_similar` | Typed seed entities instead of URLs. Planned. |
+| `context` contents | Deprecated in Exa Python SDK. Not planned. |
+
+---
+
+### 🔒 Added Beyond the Python SDK
+
+These hardening features are not in the official Exa Python SDK:
+
+| Feature | Description |
+|---|---|
+| **UUID API key validation** | Key is validated as lowercase hex UUID at startup — fails fast with a clear error, not a cryptic 401 |
+| **1 MB stdin cap** | Prevents memory exhaustion from runaway input |
+| **`num_results` hard cap (50)** | Mirrors Exa's server-side limit locally — rejects bad inputs before making a network call |
+| **10 MB response body cap** | Prevents unbounded memory growth on large crawled pages |
+| **Typed `SearchType` enum** | `auto·neural·keyword·fast·deep·instant` — invalid values rejected at parse time, not silently ignored |
+| **Typed `LivecrawlOption` enum** | `never·fallback·preferred·always·auto` — same strict validation |
+| **Errors to stderr + exit code 1** | Proper UNIX semantics — stdout is always clean JSON on success; errors never pollute the output stream |
