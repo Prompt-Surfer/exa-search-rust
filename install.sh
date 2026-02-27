@@ -4,11 +4,12 @@
 set -e
 
 SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-INSTALL_DIR="$HOME/.openclaw/workspace/skills/exa-search"
+INSTALL_DIR="$HOME/.openclaw/workspace/skills/exa-search-rust"
 
 echo "🦀 Building exa-search binary..."
 cd "$SKILL_DIR"
 cargo build --release
+mkdir -p "$SKILL_DIR/bin"
 cp target/release/exa-search "$SKILL_DIR/bin/exa-search"
 echo "✅ Binary built → $SKILL_DIR/bin/exa-search"
 
