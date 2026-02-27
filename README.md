@@ -1,4 +1,4 @@
-# openclaw-exa-skill
+# exa-search-rust
 
 OpenClaw [skill](https://openclaw.ai/docs/skills) for [Exa AI](https://exa.ai) search — neural search, find similar, and page contents via a native Rust binary.
 

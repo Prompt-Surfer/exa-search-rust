@@ -4,7 +4,7 @@ version = "0.2.0"
 edition = "2021"
 description = "Native Rust Exa AI search binary for the OpenClaw exa-search plugin"
 license = "MIT"
-repository = "https://github.com/Prompt-Surfer/openclaw-exa-plugin"
+repository = "https://github.com/Prompt-Surfer/exa-search-rust"
 keywords = ["exa", "search", "ai", "openclaw"]
 categories = ["command-line-utilities"]
 

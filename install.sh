@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# openclaw-exa-skill installer
+# exa-search-rust installer
 # Builds the exa-search Rust binary from bundled source and installs the skill.
 set -e
 
