@@ -6,7 +6,6 @@ A port of the [official Exa Python SDK](https://github.com/exa-labs/exa-py) to R
 
 > **Looking for the OpenClaw plugin version?** → [openclaw-exa-plugin](https://github.com/Prompt-Surfer/openclaw-exa-plugin) (registers `web_search_exa` as a native tool, no Bash required)
 
-
 ---
 
 ## Install
