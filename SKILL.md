@@ -1,8 +1,32 @@
+---
+name: exa-search
+description: "Neural web search, similar-page discovery, and URL content fetching via the Exa AI search engine. USE WHEN: user asks to search the web, find articles/repos/papers on a topic, look up recent news, find pages similar to a URL, or fetch page contents for a known URL. NOT FOR: fetching tweets (use fxtwitter), downloading videos (use yt-dlp), scraping JS-heavy or anti-bot sites (use scrapling), querying APIs directly, or searching local files/repos (use rg/find)."
+---
+
 # exa-search skill
 
 Use this skill to search the web, find similar pages, or fetch page contents via the [Exa AI](https://exa.ai) search engine — fast, neural, and certificate-aware.
 
 The skill invokes a native Rust binary (`bin/exa-search`) via Bash. Run `install.sh` once to build it.
+
+---
+
+## When to Use / When NOT to Use
+
+✅ **USE when:**
+- Searching the web for articles, documentation, repos, papers, tools, people, companies
+- Finding recent news or announcements (use `livecrawl: "fallback"` or `"always"` for recency)
+- Fetching full text of a known URL without browser automation
+- Finding pages similar to a reference URL (competitor analysis, alternative tools)
+- Any web lookup that isn't a specific tweet or video
+
+❌ **NOT FOR:**
+- Fetching tweets/X posts → use `fxtwitter` skill (Exa can't fetch tweet URLs)
+- Downloading video/audio → use `yt-dlp`
+- Scraping dynamic or Cloudflare-protected pages → use `scrapling`
+- Local file/code search → use `rg`, `find`, or `grep`
+- Querying structured APIs (GitHub, weather, etc.) → use their dedicated skills
+- When the query is already a direct URL with known content → prefer `get_contents` action
 
 ---
 
