@@ -12,7 +12,10 @@ use client::ExaClient;
 use protocol::{format_results, Input, Output};
 use std::io::{self, Read};
 use types::{
-    params::{ContentsInput, ExtrasOptions},
+    params::{
+        BoolOrHighlightsOptions, BoolOrSummaryOptions, BoolOrTextOptions, ContentsInput,
+        ExtrasOptions, HighlightsOptions, SummaryOptions,
+    },
     ContentsOptions, FindSimilarOptions, GetContentsOptions, SearchOptions, TextOptions,
 };
 
@@ -76,6 +79,9 @@ async fn handle_search(client: ExaClient, input: Input) {
         input.filter_empty_results,
         input.extras,
         input.max_age_hours,
+        input.highlights,
+        input.text,
+        input.summary,
     ));
 
     let opts = SearchOptions {
@@ -133,6 +139,9 @@ async fn handle_find_similar(client: ExaClient, input: Input) {
         input.filter_empty_results,
         input.extras,
         input.max_age_hours,
+        input.highlights,
+        input.text,
+        input.summary,
     ));
 
     let opts = FindSimilarOptions {
@@ -195,11 +204,31 @@ async fn handle_get_contents(client: ExaClient, input: Input) {
         })
     });
 
+    // Apply top-level shorthand fields as fallbacks
+    let text = text.or_else(|| {
+        input.text.map(|t| match t {
+            BoolOrTextOptions::Bool(_) => TextOptions::default(),
+            BoolOrTextOptions::Options(o) => o,
+        })
+    });
+    let highlights = resolved.highlights.or_else(|| {
+        input.highlights.map(|h| match h {
+            BoolOrHighlightsOptions::Bool(_) => HighlightsOptions::default(),
+            BoolOrHighlightsOptions::Options(o) => o,
+        })
+    });
+    let summary = resolved.summary.or_else(|| {
+        input.summary.map(|s| match s {
+            BoolOrSummaryOptions::Bool(_) => SummaryOptions::default(),
+            BoolOrSummaryOptions::Options(o) => o,
+        })
+    });
+
     let opts = GetContentsOptions {
         urls,
         text,
-        summary: resolved.summary,
-        highlights: resolved.highlights,
+        summary,
+        highlights,
         livecrawl: resolved.livecrawl,
         livecrawl_timeout: resolved.livecrawl_timeout,
         max_age_hours: resolved.max_age_hours.or(input.max_age_hours),
@@ -227,34 +256,28 @@ async fn handle_get_contents(client: ExaClient, input: Input) {
 /// Resolve contents from protocol input + legacy `max_chars` and top-level shorthands.
 /// If neither is provided, defaults to text with `max_characters=10000`
 /// (preserves backwards-compat with old behaviour).
+#[allow(clippy::too_many_arguments)]
 fn resolve_contents(
     contents_input: Option<&ContentsInput>,
     max_chars: Option<u32>,
     filter_empty_results: Option<bool>,
     extras: Option<ExtrasOptions>,
     max_age_hours: Option<i32>,
+    highlights: Option<BoolOrHighlightsOptions>,
+    text_shorthand: Option<BoolOrTextOptions>,
+    summary: Option<BoolOrSummaryOptions>,
 ) -> ContentsOptions {
-    if let Some(ci) = contents_input {
-        let mut opts = ci.clone().into_options();
+    let mut opts = if let Some(ci) = contents_input {
+        let mut o = ci.clone().into_options();
         // Apply legacy max_chars if text is enabled with no max_characters set
         if let Some(mc) = max_chars {
-            if let Some(ref mut text) = opts.text {
+            if let Some(ref mut text) = o.text {
                 if text.max_characters.is_none() {
                     text.max_characters = Some(mc);
                 }
             }
         }
-        // Apply top-level shorthands as fallbacks
-        if opts.filter_empty_results.is_none() {
-            opts.filter_empty_results = filter_empty_results;
-        }
-        if opts.extras.is_none() {
-            opts.extras = extras;
-        }
-        if opts.max_age_hours.is_none() {
-            opts.max_age_hours = max_age_hours;
-        }
-        opts
+        o
     } else {
         // Legacy default: always request text
         let max_characters = max_chars.or(Some(10_000));
@@ -263,12 +286,39 @@ fn resolve_contents(
                 max_characters,
                 ..Default::default()
             }),
-            filter_empty_results,
-            extras,
-            max_age_hours,
             ..Default::default()
         }
+    };
+
+    // Apply top-level shorthands as fallbacks (contents fields take priority)
+    if opts.filter_empty_results.is_none() {
+        opts.filter_empty_results = filter_empty_results;
     }
+    if opts.extras.is_none() {
+        opts.extras = extras;
+    }
+    if opts.max_age_hours.is_none() {
+        opts.max_age_hours = max_age_hours;
+    }
+    if opts.highlights.is_none() {
+        opts.highlights = highlights.map(|h| match h {
+            BoolOrHighlightsOptions::Bool(_) => HighlightsOptions::default(),
+            BoolOrHighlightsOptions::Options(o) => o,
+        });
+    }
+    if opts.text.is_none() {
+        opts.text = text_shorthand.map(|t| match t {
+            BoolOrTextOptions::Bool(_) => TextOptions::default(),
+            BoolOrTextOptions::Options(o) => o,
+        });
+    }
+    if opts.summary.is_none() {
+        opts.summary = summary.map(|s| match s {
+            BoolOrSummaryOptions::Bool(_) => SummaryOptions::default(),
+            BoolOrSummaryOptions::Options(o) => o,
+        });
+    }
+    opts
 }
 
 /// Validates that a string matches UUID v4 format without a regex dependency.

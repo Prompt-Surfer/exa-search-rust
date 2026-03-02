@@ -1,5 +1,7 @@
 use crate::types::enums::SearchType;
-use crate::types::params::{ContentsInput, ExtrasOptions};
+use crate::types::params::{
+    BoolOrHighlightsOptions, BoolOrSummaryOptions, BoolOrTextOptions, ContentsInput, ExtrasOptions,
+};
 use crate::types::result::ExaResult;
 use serde::{Deserialize, Serialize};
 
@@ -42,7 +44,14 @@ pub struct Input {
     // ── legacy compat: max_chars → contents.text.max_characters ───────────
     pub max_chars: Option<u32>,
 
-    // ── top-level contents shorthands (applied if contents object omits them) ──
+    // ── top-level contents shorthands ─────────────────────────────────────
+    // Allow e.g. `"highlights": true` or `"text": {"max_characters": 5000}` at top level.
+    // Merged into `contents` only if `contents` does not already set them.
+    pub highlights: Option<BoolOrHighlightsOptions>,
+    pub text: Option<BoolOrTextOptions>,
+    pub summary: Option<BoolOrSummaryOptions>,
+
+    // ── other top-level shorthands (applied if contents object omits them) ──
     pub filter_empty_results: Option<bool>,
     pub extras: Option<ExtrasOptions>,
     pub max_age_hours: Option<i32>,
